@@ -10,8 +10,10 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import vo.ItemVO;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @CrossOrigin(origins = "*")
@@ -47,5 +49,16 @@ public class FirestoreController {
     public String saveFirstQuestion(@RequestBody HttpFirstQuestionRequest firstQuestion) throws ExecutionException, InterruptedException, IOException {
 
         return firestoreService.saveFirstQuestion(firstQuestion);
+    }
+
+    @GetMapping("items")
+    public void getItems() throws ExecutionException, InterruptedException {
+        firestoreService.getAllItems(items -> {
+            log.info("current items: {}", items);
+        });
+    }
+    @PutMapping("insert-items")
+    public void insertItems() throws ExecutionException, InterruptedException {
+        firestoreService.insertItems();
     }
 }

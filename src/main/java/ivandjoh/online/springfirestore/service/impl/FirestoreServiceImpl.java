@@ -1,6 +1,7 @@
 package ivandjoh.online.springfirestore.service.impl;
 
 import com.google.api.core.ApiFuture;
+import com.google.api.core.ApiFutures;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import ivandjoh.online.springfirestore.http.request.FirebaseUserRequest;
@@ -15,11 +16,16 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import vo.ItemVO;
 
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -33,8 +39,7 @@ public class FirestoreServiceImpl implements FirestoreService {
 
     @Override
     public ResponseEntity<?> getAllUsers()
-            throws JsonParseException, JsonMappingException, IOException
-    {
+            throws JsonParseException, JsonMappingException, IOException {
         String data = "{\"statusCode\": 200, \"status\": \"success\", \"statusMessage\": \"Hello World\"}";
         FirestoreServiceImpl json = new FirestoreServiceImpl();
         return ResponseEntity.ok(json.converter(data));
@@ -74,8 +79,7 @@ public class FirestoreServiceImpl implements FirestoreService {
 
     @Override
     public String saveChat(DataItem dataItem)
-            throws JsonParseException, JsonMappingException, ExecutionException, InterruptedException
-    {
+            throws JsonParseException, JsonMappingException, ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
 
         Map<String, Object> docData = new HashMap<>();
@@ -89,14 +93,13 @@ public class FirestoreServiceImpl implements FirestoreService {
         docData.put("Pertanyaan - " + timestamp, Pertanyaan);
 //        docData.put("Jawaban - 62da699055be99482ab73257", Pertanyaan);
         ApiFuture<WriteResult> future = db.collection("chats").document("62da699055be99482ab73257").set(docData, SetOptions.merge());
-            return future.get().getUpdateTime().toString();
+        return future.get().getUpdateTime().toString();
 //        }
     }
 
     @Override
     public String saveFirstQuestion(HttpFirstQuestionRequest firstQuestion)
-            throws JsonParseException, JsonMappingException, IOException, ExecutionException, InterruptedException
-    {
+            throws JsonParseException, JsonMappingException, IOException, ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         Map<String, Object> pertanyaan = new HashMap<>();
 //        pertanyaan.put("doctor_id", firstQuestion.getDoctorId());
@@ -109,6 +112,50 @@ public class FirestoreServiceImpl implements FirestoreService {
 
         ApiFuture<WriteResult> future = db.collection(collectionChat).document(firstQuestion.getChatId()).set(pertanyaan);
         return future.get().getUpdateTime().toString();
+    }
+
+    @Override
+    public void getAllItems(Consumer<List<ItemVO>> consumer) {
+        Firestore firestore = FirestoreClient.getFirestore();
+//        QuerySnapshot items = firestore.collectionGroup("items").get().get();
+//        List<ItemVO> results = items.getDocuments().stream()
+//                .map(d -> d.toObject(ItemVO.class))
+//                .collect(Collectors.toList());
+//        consumer.accept(results);
+
+        // arrow method did not return errors when mapping wrong data objects (hence direct getting above get())
+        Query items2 = firestore.collectionGroup("items");
+        items2.addSnapshotListener((value, error) -> {
+            if (value != null) {
+                List<ItemVO> results2 = value.getDocuments()
+                        .stream()
+                        .map(d -> d.toObject(ItemVO.class))
+                        .collect(Collectors.toList());
+                consumer.accept(results2);
+            }
+            if(error != null){
+                log.error("failed", error);
+            }
+        });
+    }
+
+    @Override
+    public void insertItems() throws ExecutionException, InterruptedException {
+        Firestore firestore = FirestoreClient.getFirestore();
+        List<ApiFuture<WriteResult>> futures = new ArrayList<>();
+        CollectionReference items = firestore.collection("items");
+        futures.add(items.document("item-1").set(
+                ItemVO.builder().id(1L).email("green@green.com").price(123.0)
+                        .title("Banany").amount(2).createdDate(new Date())
+                        .build()
+        ));
+        futures.add(items.document("item-2").set(
+                ItemVO.builder().id(2L).email("green@green.com").price(123.0)
+                        .title("Banany").amount(2).createdDate(new Date())
+                        .build()
+        ));
+        List<WriteResult> writeResults = ApiFutures.allAsList(futures).get();
+        writeResults.forEach(o -> log.info("Updated time: {}", o.getUpdateTime()));
     }
 
 

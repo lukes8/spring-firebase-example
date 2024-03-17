@@ -6,9 +6,12 @@ import ivandjoh.online.springfirestore.http.request.chatdetails.DataItem;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.springframework.http.ResponseEntity;
+import vo.ItemVO;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 public interface FirestoreService {
 
@@ -19,4 +22,7 @@ public interface FirestoreService {
     String saveChat(DataItem dataItem) throws JsonParseException, JsonMappingException, IOException, ExecutionException, InterruptedException;
 
     String saveFirstQuestion(HttpFirstQuestionRequest firstQuestion) throws JsonParseException, JsonMappingException, IOException, ExecutionException, InterruptedException;
+
+    void getAllItems(Consumer<List<ItemVO>> consumer) throws ExecutionException, InterruptedException;
+    void insertItems() throws ExecutionException, InterruptedException;
 }
